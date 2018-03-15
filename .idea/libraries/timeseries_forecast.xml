@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="timeseries-forecast">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/timeseries-forecast.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/timeseries-forecast.jar!/" />
+    </SOURCES>
+  </library>
+</component>
