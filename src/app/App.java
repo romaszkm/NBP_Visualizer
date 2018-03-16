@@ -42,9 +42,9 @@ public class App extends Application {
         } else if (!dbInitializer.isDatabaseUpToDate()){
             updateDatabase(dbInitializer);
         } else {
-            mainScreenController.initSelectionPopup();
+            mainScreenController.setData();
+            mainScreenController.disableUI(false);
         }
-        mainScreenController.disableUI(false);
     }
 
     private void initDatabase(DBInitializer dbInitializer) {
@@ -55,7 +55,8 @@ public class App extends Application {
                 dbInitializer.initDatabase();
                 Platform.runLater(() -> {
                     mainScreenController.showInfoPopup(false, "");
-                    mainScreenController.initSelectionPopup();
+                    mainScreenController.setData();
+                    mainScreenController.disableUI(false);
                 });
                 return null;
             }
@@ -73,7 +74,8 @@ public class App extends Application {
                 dbInitializer.updateDatabase();
                 Platform.runLater(() -> {
                     mainScreenController.showInfoPopup(false, "");
-                    mainScreenController.initSelectionPopup();
+                    mainScreenController.setData();
+                    mainScreenController.disableUI(false);
                 });
                 return null;
             }

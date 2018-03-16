@@ -32,6 +32,7 @@ public class Controller {
     private Set<String> selection = new HashSet<>();
     private Popup selectionPopup;
     private Popup infoPopup;
+    private LocalDate lastDate;
 
     public Controller() {
     }
@@ -57,7 +58,6 @@ public class Controller {
     @FXML
     private void initialize() {
         initInfoPopup();
-        setDatePickers();
         //sleek lines on chart
         chart.setCreateSymbols(false);
         //listeners
@@ -103,28 +103,9 @@ public class Controller {
             series.setName(code);
             data.add(series);
 
-            if (checkBoxPrediction.isSelected() && toDate.getValue().compareTo(LocalDate.now()) == 0) {
-                List<Rate> listPredict = list;
-                if (fromDate.getValue().isAfter(toDate.getValue().minusMonths(12)))
-                    listPredict = dbManager.getRate(code, toDate.getValue().minusMonths(12), toDate.getValue());
-                XYChart.Series<String, Double> forecast = new XYChart.Series<>();
-                double[] dataArray = new double[listPredict.size()];
-                for (int i = 0; i < listPredict.size(); i++) {
-                    dataArray[i] = Double.parseDouble(listPredict.get(i).getMid());
-                }
-                ForecastResult forecastResult = Arima.forecast_arima(dataArray, 21, new ArimaParams(3, 0, 3, 1, 1, 0, 0));
-                double[] forecastData = forecastResult.getForecast();
-
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                Calendar to = Calendar.getInstance();
-                to.setTime(java.util.Date.from(toDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-
-                for (int i = 0; i < forecastData.length; i++) {
-                    XYChart.Data<String, Double> dataPoint = new XYChart.Data<>(sdf.format(to.getTime()), forecastData[i]);
-                    to.add(Calendar.DATE, 1);
-                    forecast.getData().add(dataPoint);
-                }
-                forecast.setName(code + " - prediction");
+            if (checkBoxPrediction.isSelected() &&
+                    (toDate.getValue().compareTo(lastDate) == 0 || toDate.getValue().compareTo(LocalDate.now()) == 0)) {
+                XYChart.Series<String, Double> forecast = getPrediction(list);
                 data.add(forecast);
             }
         }
@@ -156,9 +137,45 @@ public class Controller {
         return series;
     }
 
+    private XYChart.Series<String, Double> getPrediction(List<Rate> list) throws Exception {
+        List<Rate> listPredict = list;
+        String code = list.get(0).getCode();
+        if (fromDate.getValue().isAfter(toDate.getValue().minusMonths(12)))
+            listPredict = dbManager.getRate(code, toDate.getValue().minusMonths(12), toDate.getValue());
+        XYChart.Series<String, Double> forecast = new XYChart.Series<>();
+        double[] dataArray = new double[listPredict.size()];
+        for (int i = 0; i < listPredict.size(); i++) {
+            dataArray[i] = Double.parseDouble(listPredict.get(i).getMid());
+        }
+        ForecastResult forecastResult = Arima.forecast_arima(dataArray, 21, new ArimaParams(3, 0, 3, 1, 1, 0, 0));
+        double[] forecastData = forecastResult.getForecast();
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Calendar to = Calendar.getInstance();
+        to.setTime(java.util.Date.from(toDate.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+
+        for (int i = 0; i < forecastData.length; i++) {
+            XYChart.Data<String, Double> dataPoint = new XYChart.Data<>(sdf.format(to.getTime()), forecastData[i]);
+            to.add(Calendar.DATE, 1);
+            forecast.getData().add(dataPoint);
+        }
+        forecast.setName(code + " - prediction");
+        return forecast;
+    }
+
+    public void setData() {
+        setDatePickers();
+        initSelectionPopup();
+    }
+
     private void setDatePickers() {
-        fromDate.setValue(LocalDate.now());
-        toDate.setValue(LocalDate.now());
+        try {
+            lastDate = dbManager.getLastDate();
+            fromDate.setValue(lastDate.minusMonths(6));
+            toDate.setValue(lastDate);
+        } catch (Exception e) {
+            showExceptionPopup(e);
+        }
 
         final Callback<DatePicker, DateCell> dayCellFactory = (final DatePicker datePicker) -> new DateCell() {
             @Override
@@ -182,7 +199,7 @@ public class Controller {
         toDate.setOnAction(e -> {
             if (toDate.getValue().isAfter(LocalDate.now())) {
                 toDate.setValue(LocalDate.now());
-            } else if (toDate.getValue().isBefore(LocalDate.now())) {
+            } else if (toDate.getValue().isBefore(lastDate)) {
                 checkBoxPrediction.setDisable(true);
                 labelInfo.setVisible(true);
             } else {
@@ -193,7 +210,7 @@ public class Controller {
         });
     }
 
-    public void initSelectionPopup() {
+    private void initSelectionPopup() {
         try {
             int codesInRow = 5;
             List<Currency> currencyList = null;

@@ -70,7 +70,8 @@ public class DBInitializer {
         lastDate.add(Calendar.DATE, 1);
         Calendar today = Calendar.getInstance();
         List<ExchangeRatesTable> ratesTables = APIHandler.getInstance().getTableForDate(lastDate, today);
-        insertData(ratesTables);
+        if (ratesTables != null)
+            insertData(ratesTables);
     }
 
     private Date getLastDate() throws Exception {

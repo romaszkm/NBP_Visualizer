@@ -8,6 +8,7 @@ import app.utils.Currency;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Calendar;
@@ -26,6 +27,19 @@ public class DBManager {
         setValues(exchangeRatesTable, ps, rates);
         ps.executeBatch();
         ps.close();
+    }
+
+    public LocalDate getLastDate() throws Exception {
+        String sql = "SELECT MAX(ts) FROM rates";
+        PreparedStatement ps = ApplicationBean.getInstance().getConnection().prepareStatement(sql);
+        ResultSet rs = ps.executeQuery();
+        //data can be empty
+        if (rs.next())
+            return rs.getDate(1).toLocalDate();
+        else {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            return LocalDate.parse(FIRST_TABLE_DATE);
+        }
     }
 
     protected static void setValues(ExchangeRatesTable exchangeRatesTable, PreparedStatement ps, List<Rate> rates) throws Exception {
